@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,49 +8,116 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  avatarUrl String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   githubAccount GitHubAccount?
-  repositories Repository[]
+  repositories  Repository[]
 }
 
 model GitHubAccount {
-  id           String   @id @default(cuid())
-  githubId     String   @unique
+  id           String    @id @default(cuid())
+  githubId     String    @unique
   username     String
   accessToken  String
   refreshToken String?
   expiresAt    DateTime?
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Repository {
-  id String @id @default(cuid())
-  githubId String @unique
-  owner String
-  name String
-  fullName String
-  description String?
-  defaultBranch String
-  language String?
-  visibility RepositoryVisibility
-  githubUrl String
-  lastSyncedAt DateTime?
-  lastReviewedAt DateTime?
-  reviewCount Int @default(0)
-  totalIssues Int @default(0)
-  status RepositoryStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId String
-  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
-  reviews Review[]
-  chatSessions ChatSession[]
+  id              String               @id @default(cuid())
+  githubId        String               @unique
+  owner           String
+  name            String
+  fullName        String
+  description     String?
+  defaultBranch   String
+  language        String?
+  visibility      RepositoryVisibility
+  githubUrl       String
+  lastSyncedAt    DateTime?
+  lastReviewedAt  DateTime?
+  reviewCount     Int                  @default(0)
+  totalIssues     Int                  @default(0)
+  status          RepositoryStatus     @default(ACTIVE)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  userId          String
+  forks           Int                  @default(0)
+  isArchived      Boolean              @default(false)
+  openIssues      Int                  @default(0)
+  pushedAt        DateTime?
+  size            Int                  @default(0)
+  stars           Int                  @default(0)
+  updatedOnGithub DateTime?
+  isPrivate       Boolean
+  chatSessions    ChatSession[]
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews         Review[]
+}
+
+model Review {
+  id                   String       @id @default(cuid())
+  status               ReviewStatus
+  overallScore         Float?
+  securityScore        Float?
+  performanceScore     Float?
+  maintainabilityScore Float?
+  documentationScore   Float?
+  summary              String?
+  modelUsed            String?
+  provider             String?       
+  modelVersion         String?       
+  inputTokens          Int?          
+  outputTokens         Int?          
+  cost                 Float?        
+  durationMs           Int?
+  promptVersion        String?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  repositoryId         String
+  repository           Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  issues               Issue[]
+  createdAt            DateTime     @default(now())
+}
+
+model Issue {
+  id             String        @id @default(cuid())
+  filePath       String
+  line           Int
+  column         Int?
+  severity       Severity
+  category       IssueCategory
+  title          String
+  description    String
+  recommendation String
+  reviewId       String
+  confidence     Float?
+  codeSnippet    String?
+  review         Review        @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+model ChatSession {
+  id           String        @id @default(cuid())
+  title        String
+  repositoryId String
+  createdAt    DateTime      @default(now())
+  messages     ChatMessage[]
+  repository   Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  role          MessageRole
+  content       String
+  chatSessionId String
+  createdAt     DateTime    @default(now())
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 }
 
 enum RepositoryVisibility {
@@ -71,85 +132,30 @@ enum RepositoryStatus {
   ARCHIVED
 }
 
-model Review {
-  id String @id @default(cuid())
-  status ReviewStatus
-  overallScore Float?
-  securityScore Float?
-  performanceScore Float?
-  maintainabilityScore Float?
-  documentationScore Float?
-  summary String?
-  modelUsed String?
-  durationMs Int?
-  promptVersion String?
-  startedAt DateTime?
-  completedAt DateTime?
-  repositoryId String
-  repository Repository @relation(fields:[repositoryId], references:[id], onDelete:Cascade)
-  issues Issue[]
-  createdAt DateTime @default(now())
-}
-
 enum ReviewStatus {
-QUEUED
-RUNNING
-COMPLETED
-FAILED
-}
-
-model Issue {
-  id String @id @default(cuid())
-  filePath String
-  line Int
-  column Int?
-  severity Severity
-  category IssueCategory
-  title String
-  description String
-  recommendation String
-  reviewId String
-  review Review @relation(fields:[reviewId], references:[id], onDelete:Cascade)
-  confidence Float?
-  codeSnippet String?
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum Severity {
-LOW
-MEDIUM
-HIGH
-CRITICAL
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum IssueCategory {
-SECURITY
-BUG
-PERFORMANCE
-STYLE
-BEST_PRACTICE
-DOCUMENTATION
-}
-
-model ChatSession {
-  id String @id @default(cuid())
-  title String
-  repositoryId String
-  repository Repository @relation(fields:[repositoryId], references:[id], onDelete:Cascade)
-  messages ChatMessage[]
-  createdAt DateTime @default(now())
-}
-
-model ChatMessage {
-  id String @id @default(cuid())
-  role MessageRole
-  content String
-  chatSessionId String
-  chatSession ChatSession @relation(fields:[chatSessionId], references:[id], onDelete:Cascade)
-  createdAt DateTime @default(now())
+  SECURITY
+  BUG
+  PERFORMANCE
+  STYLE
+  BEST_PRACTICE
+  DOCUMENTATION
 }
 
 enum MessageRole {
-USER
-ASSISTANT
+  USER
+  ASSISTANT
 }
-

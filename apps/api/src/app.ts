@@ -9,6 +9,7 @@ import errorHandler from "./middleware/errorHandler";
 
 import repositoryRoutes from "./modules/repository/repository.routes";
 import authRoutes from "./modules/auth/auth.routes";
+import reviewRoutes from "./modules/review/review.routes";
 
 const app = express();
 
@@ -31,6 +32,8 @@ app.get("/api/v1/health", (_, res) => {
 app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/v1/repositories", repositoryRoutes);
+
+app.use("/api/v1/reviews", reviewRoutes);
 
 // 404 (must be after all routes)
 app.use((req, res) => {

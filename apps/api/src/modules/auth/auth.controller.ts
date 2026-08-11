@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
+import authService from "./auth.service";
 
 class AuthController {
-  async githubLogin(req: Request, res: Response, next: NextFunction) {
+  githubLogin(req: Request, res: Response, next: NextFunction) {
     try {
-      res.status(200).json({
-        success: true,
-        message: "GitHub login endpoint",
-      });
+      const url = authService.getGithubAuthorizationUrl();
+
+      res.redirect(url);
     } catch (error) {
       next(error);
     }
@@ -14,10 +14,11 @@ class AuthController {
 
   async githubCallback(req: Request, res: Response, next: NextFunction) {
     try {
-      res.status(200).json({
-        success: true,
-        message: "GitHub callback endpoint",
-      });
+      const code = req.query.code as string;
+
+      const response = await authService.githubCallback(code);
+
+      res.json(response);
     } catch (error) {
       next(error);
     }

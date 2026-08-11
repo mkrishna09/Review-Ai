@@ -31,4 +31,7 @@ export default {
   gemini: {
     apiKey: env.GEMINI_API_KEY,
   },
+  jwtSecret: env.JWT_SECRET,
+
+  frontendUrl: env.FRONTEND_URL,
 };

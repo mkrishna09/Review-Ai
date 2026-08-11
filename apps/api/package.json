@@ -23,18 +23,21 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@google/genai": "^2.16.0",
     "@prisma/client": "^6.16.2",
+    "axios": "^1.19.0",
+    "bullmq": "^6.0.10",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^16.0.3",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "prisma": "^6.16.2",
     "winston": "^3.19.0",
-    "zod": "^4.4.3",
-    "axios": "^1.19.0",
-    "jsonwebtoken": "^9.0.3"
+    "zod": "^4.4.3"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
