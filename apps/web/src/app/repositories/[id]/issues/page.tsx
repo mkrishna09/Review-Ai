@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import AppShell from "@/components/layout/app-shell";
 import PageHeader from "@/components/core/page-header";
@@ -16,7 +16,7 @@ function displaySeverity(severity: string): "High" | "Medium" | "Low" {
   return "Low";
 }
 
-export default function IssuesPage() {
+function IssuesContent() {
   const { id } = useParams<{ id: string }>();
   const reviewId = useSearchParams().get("reviewId");
   const [review, setReview] = useState<Review | null>(null);
@@ -89,5 +89,21 @@ export default function IssuesPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function IssuesPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <div className="mx-auto max-w-7xl text-muted-foreground">
+            Loading issues…
+          </div>
+        </AppShell>
+      }
+    >
+      <IssuesContent />
+    </Suspense>
   );
 }
