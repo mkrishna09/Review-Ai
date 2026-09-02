@@ -30,22 +30,16 @@ export default function RepositoryPage() {
     async function load() {
       try {
         setError(null);
-        const response = await repositoryService.getRepository(params.id);
-        setRepository(response.data);
-        const historyResponse = await repositoryService.getReviewHistory(
-          params.id,
-        );
+        const [repoResponse, historyResponse] = await Promise.all([
+          repositoryService.getRepository(params.id),
+          repositoryService.getReviewHistory(params.id),
+        ]);
+        setRepository(repoResponse.data);
         setHistory(historyResponse.data);
-        const listing = await repositoryService.getRepositories({
-          search: response.data.fullName,
-          limit: 100,
-        });
-        const repositorySummary = listing.data.find(
-          (candidate) => candidate.id === response.data.id,
-        );
-        if (repositorySummary?.latestReview?.id) {
+
+        if (repoResponse.data.latestReview?.id) {
           const latest = await reviewService.getReview(
-            repositorySummary.latestReview.id,
+            repoResponse.data.latestReview.id,
           );
           setReview(latest.data);
         }
