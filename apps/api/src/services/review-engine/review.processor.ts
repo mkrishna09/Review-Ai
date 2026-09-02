@@ -1,5 +1,5 @@
 import authRepository from "../../modules/auth/auth.repository";
-import IssueRepository from "../../modules/issue/ issue.repository";
+import IssueRepository from "../../modules/issue/issue.repository";
 import repositoryRepository from "../../modules/repository/repository.repository";
 import reviewRepository from "../../modules/review/review.repository";
 

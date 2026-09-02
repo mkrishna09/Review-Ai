@@ -1,15 +1,11 @@
-import prisma from "../../database/prisma";
 import authRepository from "../auth/auth.repository";
 import githubService from "../../services/github.service";
 import repositoryRepository from "./repository.repository";
 import { RepositoryQuery } from "./repository.types";
 import NotFoundError from "../../errors/NotFoundError";
+import { GitHubRepository } from "../../types/github.types";
 
 class RepositoryService {
-  async testConnection() {
-    return await prisma.user.findMany();
-  }
-
   async syncRepositories(userId: string) {
     const githubAccount = await authRepository.getGithubAccount(userId);
 
@@ -21,7 +17,7 @@ class RepositoryService {
       githubAccount.accessToken,
     );
 
-    const repositories = githubRepositories.map((repo) => ({
+    const repositories: GitHubRepository[] = githubRepositories.map((repo) => ({
       githubId: repo.id.toString(),
       owner: repo.owner.login,
       name: repo.name,
@@ -29,7 +25,7 @@ class RepositoryService {
       description: repo.description,
       defaultBranch: repo.default_branch,
       language: repo.language,
-      visibility: repo.visibility.toUpperCase(),
+      visibility: repo.visibility === "private" ? "PRIVATE" : "PUBLIC",
       githubUrl: repo.html_url,
 
       stars: repo.stargazers_count,
@@ -54,25 +50,7 @@ class RepositoryService {
     };
   }
   async getRepositories(userId: string, query: RepositoryQuery) {
-    const { repositories, total } = await repositoryRepository.getRepositories(
-      userId,
-      query,
-    );
-
-    const totalPages = Math.ceil(total / query.limit);
-
-    return {
-      repositories,
-
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages,
-        hasNextPage: query.page < totalPages,
-        hasPreviousPage: query.page > 1,
-      },
-    };
+    return repositoryRepository.getRepositories(userId, query);
   }
   async getRepositoryById(id: string, userId: string) {
     const repository = await repositoryRepository.getRepositoryById(id, userId);
@@ -82,6 +60,10 @@ class RepositoryService {
     }
 
     return repository;
+  }
+  async getReviewHistory(id: string, userId: string) {
+    await this.getRepositoryById(id, userId);
+    return repositoryRepository.getReviewHistory(id, userId);
   }
 }
 
