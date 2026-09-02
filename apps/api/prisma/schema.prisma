@@ -71,19 +71,19 @@ model Review {
   documentationScore   Float?
   summary              String?
   modelUsed            String?
-  provider             String?       
-  modelVersion         String?       
-  inputTokens          Int?          
-  outputTokens         Int?          
-  cost                 Float?        
   durationMs           Int?
   promptVersion        String?
   startedAt            DateTime?
   completedAt          DateTime?
   repositoryId         String
-  repository           Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
-  issues               Issue[]
   createdAt            DateTime     @default(now())
+  cost                 Float?
+  inputTokens          Int?
+  modelVersion         String?
+  outputTokens         Int?
+  provider             String?
+  issues               Issue[]
+  repository           Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
 }
 
 model Issue {

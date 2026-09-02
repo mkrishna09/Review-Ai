@@ -15,6 +15,7 @@ export default function requestLogger(
       url: req.originalUrl,
       status: res.statusCode,
       duration: `${Date.now() - start}ms`,
+      userId: req.user?.id,
     });
   });
 

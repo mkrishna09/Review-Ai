@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import AppError from "../errors/AppError";
+import logger from "../logger/logger";
 
 const errorHandler = (
   err: Error,
@@ -8,10 +9,17 @@ const errorHandler = (
   _next: NextFunction,
 ) => {
   const statusCode = err instanceof AppError ? err.statusCode : 500;
+  logger.error({
+    err: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+    statusCode,
+  });
 
   res.status(statusCode).json({
     success: false,
-    message: err.message,
+    message: statusCode >= 500 ? "An unexpected error occurred" : err.message,
   });
 };
 

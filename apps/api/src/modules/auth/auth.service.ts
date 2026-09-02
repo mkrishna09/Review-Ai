@@ -13,11 +13,12 @@ class AuthService {
   /**
    * Redirect URL for GitHub OAuth
    */
-  getGithubAuthorizationUrl() {
+  getGithubAuthorizationUrl(state: string) {
     const params = new URLSearchParams({
       client_id: config.github.clientId,
-      redirect_uri: "http://localhost:4000/api/v1/auth/github/callback",
+      redirect_uri: `${config.apiUrl}/api/v1/auth/github/callback`,
       scope: "read:user user:email repo",
+      state,
     });
 
     return `https://github.com/login/oauth/authorize?${params.toString()}`;
