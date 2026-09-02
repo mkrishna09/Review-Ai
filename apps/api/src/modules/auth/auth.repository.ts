@@ -1,4 +1,5 @@
 import prisma from "../../database/prisma";
+import { encryptToken, decryptToken } from "../../lib/crypto";
 
 class AuthRepository {
   async upsertUser(data: {
@@ -9,6 +10,8 @@ class AuthRepository {
     username: string;
     accessToken: string;
   }) {
+    const encryptedAccessToken = encryptToken(data.accessToken);
+
     return prisma.user.upsert({
       where: {
         email: data.email,
@@ -23,12 +26,12 @@ class AuthRepository {
             create: {
               githubId: data.githubId,
               username: data.username,
-              accessToken: data.accessToken,
+              accessToken: encryptedAccessToken,
             },
 
             update: {
               username: data.username,
-              accessToken: data.accessToken,
+              accessToken: encryptedAccessToken,
             },
           },
         },
@@ -43,7 +46,7 @@ class AuthRepository {
           create: {
             githubId: data.githubId,
             username: data.username,
-            accessToken: data.accessToken,
+            accessToken: encryptedAccessToken,
           },
         },
       },
@@ -53,8 +56,9 @@ class AuthRepository {
       },
     });
   }
+
   async getGithubAccount(userId: string) {
-    return prisma.gitHubAccount.findUnique({
+    const account = await prisma.gitHubAccount.findUnique({
       where: {
         userId,
       },
@@ -68,6 +72,12 @@ class AuthRepository {
         userId: true,
       },
     });
+
+    if (account && account.accessToken) {
+      account.accessToken = decryptToken(account.accessToken);
+    }
+
+    return account;
   }
 }
 
