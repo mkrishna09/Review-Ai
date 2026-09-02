@@ -1,5 +1,6 @@
 import { gemini } from "../lib/gemini";
 import { AI_CONFIG } from "../config/ai.config";
+import logger from "../logger/logger";
 
 import {
   ReviewResult,
@@ -8,16 +9,43 @@ import {
 
 import { mockReview } from "./review-engine/mock-review";
 
+/**
+ * Extracts and cleans JSON content from model responses, stripping markdown fences
+ * or leading/trailing commentary if present.
+ */
+export function extractJsonFromText(rawText: string): string {
+  let cleaned = rawText.trim();
+
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "");
+    cleaned = cleaned.replace(/\s*```$/, "");
+    cleaned = cleaned.trim();
+  }
+
+  // Find outermost JSON object boundaries { ... }
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+  }
+
+  return cleaned;
+}
+
 class AIService {
   async generateReview(prompt: string): Promise<ReviewResult> {
-    console.log("process.env.USE_MOCK_AI =", process.env.USE_MOCK_AI);
-    console.log("AI_CONFIG.USE_MOCK_AI =", AI_CONFIG.USE_MOCK_AI);
     if (AI_CONFIG.USE_MOCK_AI) {
-      console.log("🤖 Using Mock AI");
+      logger.info(
+        "AI Service: using mock review generation (USE_MOCK_AI is true)",
+      );
       return mockReview;
     }
 
-    console.log("🤖 Using Gemini");
+    logger.info(
+      `AI Service: requesting code review from Gemini model: ${AI_CONFIG.MODEL}`,
+    );
 
     const response = await gemini.models.generateContent({
       model: AI_CONFIG.MODEL,
@@ -26,11 +54,24 @@ class AIService {
 
     const output = response.text;
 
-    if (!output) {
+    if (!output || output.trim() === "") {
       throw new Error("Gemini returned an empty response.");
     }
 
-    return reviewResultSchema.parse(JSON.parse(output));
+    const jsonString = extractJsonFromText(output);
+
+    try {
+      const parsedJson = JSON.parse(jsonString);
+      return reviewResultSchema.parse(parsedJson);
+    } catch (parseError) {
+      logger.error("Failed to parse Gemini output as structured ReviewResult", {
+        parseError,
+        rawOutputSnippet: output.slice(0, 300),
+      });
+      throw new Error(
+        `Failed to parse AI review output: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+      );
+    }
   }
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowLeft, ExternalLink, ShieldAlert } from "lucide-react";
 import AppShell from "@/components/layout/app-shell";
 import Panel from "@/components/core/panel";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import CodeViewer from "@/components/review/code-viewer";
 import reviewService, { ReviewIssue } from "@/services/review.service";
 
-export default function IssueDetailsPage() {
+function IssueDetailsContent() {
   const { id, issueId } = useParams<{ id: string; issueId: string }>();
   const reviewId = useSearchParams().get("reviewId");
   const [issue, setIssue] = useState<ReviewIssue | null>(null);
@@ -59,6 +59,7 @@ export default function IssueDetailsPage() {
     issue.severity === "CRITICAL"
       ? "Critical"
       : `${issue.severity[0]}${issue.severity.slice(1).toLowerCase()}`;
+
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl space-y-8">
@@ -136,5 +137,21 @@ export default function IssueDetailsPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function IssueDetailsPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <div className="mx-auto max-w-6xl text-muted-foreground">
+            Loading issue details…
+          </div>
+        </AppShell>
+      }
+    >
+      <IssueDetailsContent />
+    </Suspense>
   );
 }

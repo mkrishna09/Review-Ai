@@ -1,5 +1,5 @@
 import authRepository from "../../modules/auth/auth.repository";
-import IssueRepository from "../../modules/issue/ issue.repository";
+import IssueRepository from "../../modules/issue/issue.repository";
 import repositoryRepository from "../../modules/repository/repository.repository";
 import reviewRepository from "../../modules/review/review.repository";
 
@@ -7,6 +7,7 @@ import repositoryParser from "./repository-parser";
 import tokenBudgetManager from "./token-budget-manager";
 import promptBuilder from "./prompt-builder";
 import AiService from "../ai.service";
+import logger from "../../logger/logger";
 
 import { AI_CONFIG } from "../../config/ai.config";
 import { ReviewJobData } from "../../jobs/review-job.types";
@@ -14,50 +15,39 @@ import { ReviewJobData } from "../../jobs/review-job.types";
 class ReviewProcessor {
   async process(job: ReviewJobData): Promise<void> {
     const { reviewId, repositoryId, userId } = job;
-
     const startedAt = Date.now();
 
     try {
-      console.log("\n====================================");
-      console.log("🚀 Starting Review");
-      console.log("Review ID:", reviewId);
-      console.log("Repository ID:", repositoryId);
-      console.log("User ID:", userId);
-      console.log("====================================\n");
+      logger.info(`ReviewProcessor: starting review ${reviewId}`, {
+        reviewId,
+        repositoryId,
+        userId,
+      });
 
-      console.log("🟡 Step 1: Marking review as RUNNING...");
-
+      // Step 1: Mark review as RUNNING
       await reviewRepository.markReviewAsRunning(reviewId);
 
-      console.log("✅ Review marked as RUNNING");
-
-      console.log("🟡 Step 2: Loading repository...");
-
+      // Step 2: Load repository
       const repository = await repositoryRepository.getRepositoryById(
         repositoryId,
         userId,
       );
 
       if (!repository) {
-        throw new Error("Repository not found");
+        throw new Error(`Repository not found: ${repositoryId}`);
       }
 
-      console.log("✅ Repository loaded");
-      console.log(repository.fullName);
-
-      console.log("🟡 Step 3: Loading GitHub account...");
-
+      // Step 3: Load GitHub account with decrypted access token
       const githubAccount = await authRepository.getGithubAccount(userId);
 
       if (!githubAccount) {
-        throw new Error("GitHub account not found");
+        throw new Error(`GitHub account not found for user: ${userId}`);
       }
 
-      console.log("✅ GitHub account loaded");
-      console.log(githubAccount.username);
-
-      console.log("🟡 Step 4: Parsing repository...");
-
+      // Step 4: Parse repository files from GitHub
+      logger.info(
+        `ReviewProcessor: parsing repository tree for ${repository.fullName}`,
+      );
       const parsedRepository = await repositoryParser.parseRepository(
         githubAccount.accessToken,
         repository.owner,
@@ -65,76 +55,55 @@ class ReviewProcessor {
         repository.defaultBranch,
       );
 
-      console.log("✅ Repository parsed");
-      console.log(`Files: ${parsedRepository.totalFiles}`);
-
-      console.log("🟡 Step 5: Applying token budget...");
-
+      // Step 5: Fit into token budget
       const optimizedRepository =
         tokenBudgetManager.fitRepository(parsedRepository);
 
-      console.log("✅ Token budget applied");
-      console.log(
-        `Files after optimization: ${optimizedRepository.files.length}`,
-      );
-
-      console.log("🟡 Step 6: Building prompt...");
-
+      // Step 6: Build prompt
       const prompt = promptBuilder.buildReviewPrompt(optimizedRepository);
 
-      console.log("✅ Prompt built");
-      console.log(`Prompt size: ${prompt.length} characters`);
-
-      console.log("🟡 Step 7: Calling OpenAI...");
-
+      // Step 7: Call AI Service (Gemini / Mock)
+      logger.info(
+        `ReviewProcessor: sending prompt (${prompt.length} chars) to AI engine`,
+      );
       const reviewResult = await AiService.generateReview(prompt);
 
-      console.log("✅ OpenAI completed");
-
-      console.log("🟡 Step 8: Saving review...");
-
+      // Step 8: Save review completion details
       await reviewRepository.markReviewAsCompleted(reviewId, {
         summary: reviewResult.summary,
-
         overallScore: reviewResult.overallScore,
-
         securityScore: reviewResult.securityScore,
-
         performanceScore: reviewResult.performanceScore,
-
         maintainabilityScore: reviewResult.maintainabilityScore,
-
         documentationScore: reviewResult.documentationScore,
-
         provider: AI_CONFIG.PROVIDER,
-
         modelUsed: AI_CONFIG.MODEL,
-
         modelVersion: AI_CONFIG.MODEL,
-
         promptVersion: AI_CONFIG.PROMPT_VERSION,
-
         durationMs: Date.now() - startedAt,
       });
 
-      console.log("✅ Review saved");
-
-      console.log("🟡 Step 9: Saving issues...");
-
+      // Step 9: Save issues
       await IssueRepository.createMany(reviewId, reviewResult.issues);
 
-      console.log("✅ Issues saved");
-
-      console.log("\n🎉 Review Completed Successfully!\n");
+      logger.info(
+        `ReviewProcessor: review ${reviewId} completed successfully in ${Date.now() - startedAt}ms`,
+        {
+          reviewId,
+          issuesCount: reviewResult.issues.length,
+          overallScore: reviewResult.overallScore,
+        },
+      );
     } catch (error) {
-      console.error("\n====================================");
-      console.error("❌ REVIEW PROCESSOR FAILED");
-      console.error("====================================");
-      console.error(error);
-      console.error("====================================\n");
+      logger.error(`ReviewProcessor: review ${reviewId} failed`, {
+        reviewId,
+        repositoryId,
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
 
       await reviewRepository.markReviewAsFailed(reviewId);
-
       throw error;
     }
   }

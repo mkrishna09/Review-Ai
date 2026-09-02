@@ -1,15 +1,30 @@
 import IORedis from "ioredis";
+import config from "../config/env";
+import logger from "../logger/logger";
 
 export const redis = new IORedis({
-  host: process.env.REDIS_HOST ?? "127.0.0.1",
-  port: Number(process.env.REDIS_PORT) || 6379,
+  host: config.redis.host,
+  port: config.redis.port,
   maxRetriesPerRequest: null,
+  lazyConnect: false,
 });
 
 redis.on("connect", () => {
-  console.log("✅ Redis connected");
+  logger.info("Redis connection established");
+});
+
+redis.on("ready", () => {
+  logger.info("Redis client ready to process commands");
+});
+
+redis.on("reconnecting", (delay: number) => {
+  logger.warn(`Redis reconnecting in ${delay}ms`);
 });
 
 redis.on("error", (error) => {
-  console.error("❌ Redis Error:", error);
+  logger.error("Redis client encountered an error", { error });
+});
+
+redis.on("close", () => {
+  logger.warn("Redis connection closed");
 });

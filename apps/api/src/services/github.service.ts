@@ -1,8 +1,9 @@
 import { githubApi } from "../lib/github";
+import { GithubApiRepository, GithubTreeItem } from "../types/github.types";
 
 class GithubService {
   async getRepositories(accessToken: string) {
-    const response = await githubApi.get("/user/repos", {
+    const response = await githubApi.get<GithubApiRepository[]>("/user/repos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -20,7 +21,7 @@ class GithubService {
     repo: string,
     branch: string,
   ) {
-    const response = await githubApi.get(
+    const response = await githubApi.get<{ tree: GithubTreeItem[] }>(
       `/repos/${owner}/${repo}/git/trees/${branch}`,
       {
         headers: {

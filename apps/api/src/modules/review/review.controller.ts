@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { CreateReviewRequest } from "./review.request.validation";
 import reviewService from "./review.service";
+import ValidationError from "../../errors/ValidationError";
 
 class ReviewController {
   async createReview(req: Request, res: Response) {
@@ -18,10 +19,13 @@ class ReviewController {
       },
     });
   }
-  async getReview(req, res) {
+  async getReview(req: Request, res: Response) {
     const { reviewId } = req.params;
+    if (typeof reviewId !== "string") {
+      throw new ValidationError("Invalid review ID");
+    }
 
-    const review = await reviewService.getReview(reviewId);
+    const review = await reviewService.getReview(reviewId, req.user!.id);
 
     res.status(200).json({
       success: true,

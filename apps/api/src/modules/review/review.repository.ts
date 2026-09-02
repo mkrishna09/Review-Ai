@@ -12,10 +12,11 @@ class ReviewRepository {
     });
   }
 
-  async getReviewById(reviewId: string) {
-    return prisma.review.findUnique({
+  async getReviewById(reviewId: string, userId: string) {
+    return prisma.review.findFirst({
       where: {
         id: reviewId,
+        repository: { userId },
       },
       include: {
         issues: {
@@ -32,6 +33,16 @@ class ReviewRepository {
           },
         },
       },
+    });
+  }
+
+  async getActiveReview(repositoryId: string) {
+    return prisma.review.findFirst({
+      where: {
+        repositoryId,
+        status: { in: [ReviewStatus.QUEUED, ReviewStatus.RUNNING] },
+      },
+      orderBy: { createdAt: "desc" },
     });
   }
 

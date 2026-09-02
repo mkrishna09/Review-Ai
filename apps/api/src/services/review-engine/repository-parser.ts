@@ -4,6 +4,7 @@ import { GithubTreeItem } from "../../types/github.types";
 
 class RepositoryParser {
   private readonly MAX_FILES = 100;
+  private readonly MAX_FILE_CHARACTERS = 20_000;
 
   private readonly ignoredDirectories = new Set([
     "node_modules",
@@ -31,6 +32,11 @@ class RepositoryParser {
     ".mp3",
     ".webp",
     ".avif",
+    ".pem",
+    ".key",
+    ".p12",
+    ".pfx",
+    ".der",
   ];
 
   private shouldIgnore(path: string): boolean {
@@ -40,7 +46,12 @@ class RepositoryParser {
       return true;
     }
 
-    if (path.startsWith(".env") || path.includes("/.env")) {
+    const lowerPath = path.toLowerCase();
+    if (
+      path.startsWith(".env") ||
+      path.includes("/.env") ||
+      /(^|\/)(credentials|secrets?|id_rsa|id_ed25519)(\.|$)/.test(lowerPath)
+    ) {
       return true;
     }
 
@@ -72,34 +83,42 @@ class RepositoryParser {
       totalFiles: files.length,
     };
 
-    for (const file of files) {
-      try {
-        const content = await githubService.getFileContent(
-          accessToken,
-          owner,
-          repo,
-          file.path,
-        );
+    const concurrency = 8;
+    for (let i = 0; i < files.length; i += concurrency) {
+      const chunk = files.slice(i, i + concurrency);
+      await Promise.all(
+        chunk.map(async (file: GithubTreeItem) => {
+          try {
+            const content = await githubService.getFileContent(
+              accessToken,
+              owner,
+              repo,
+              file.path,
+            );
 
-        // Keep README separate
-        if (file.path === "README.md") {
-          parsedRepository.readme = content;
-          continue;
-        }
+            if (content.length > this.MAX_FILE_CHARACTERS) return;
 
-        // Keep package.json separate
-        if (file.path === "package.json") {
-          parsedRepository.packageJson = content;
-          continue;
-        }
+            // Keep README separate
+            if (file.path === "README.md") {
+              parsedRepository.readme = content;
+              return;
+            }
 
-        parsedRepository.files.push({
-          path: file.path,
-          content,
-        });
-      } catch {
-        continue;
-      }
+            // Keep package.json separate
+            if (file.path === "package.json") {
+              parsedRepository.packageJson = content;
+              return;
+            }
+
+            parsedRepository.files.push({
+              path: file.path,
+              content,
+            });
+          } catch {
+            // Silently skip unreadable or non-decodable files
+          }
+        }),
+      );
     }
 
     return parsedRepository;

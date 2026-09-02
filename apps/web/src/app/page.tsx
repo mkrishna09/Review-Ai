@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bot, GitFork, ShieldCheck } from "lucide-react";
 
@@ -10,7 +10,7 @@ import sessionService from "@/services/session.service";
 const apiUrl =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/repositories";
@@ -48,5 +48,19 @@ export default function Home() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-background px-6">
+          <div className="text-muted-foreground">Loading ReviewAI...</div>
+        </main>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
+import config from "../config/env";
 
 export const gemini = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
+  apiKey: config.gemini.apiKey,
 });

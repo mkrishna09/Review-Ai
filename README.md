@@ -1,159 +1,109 @@
-# Turborepo starter
+# ReviewAI
 
-This Turborepo starter is maintained by the Turborepo core team.
+An intelligent, AI-powered codebase analysis and automated code review platform. ReviewAI connects to GitHub repositories, analyzes code architecture, security, performance, maintainability, and documentation using Google Gemini, and delivers actionable, prioritized insights in an interactive developer dashboard.
 
-## Using this example
+---
 
-Run the following command:
+## Architecture
 
-```sh
-npx create-turbo@latest
+ReviewAI is built as a TypeScript monorepo powered by [Turborepo](https://turbo.build/):
+
+```
+review-ai/
+├── apps/
+│   ├── api/          # Express 5 backend with Prisma ORM, BullMQ workers, and Gemini AI
+│   └── web/          # Next.js 16 frontend with Tailwind CSS v4, React Query, and Lucide icons
+└── packages/
+    ├── eslint-config # Shared ESLint configurations
+    └── typescript-config # Shared TypeScript base configurations
 ```
 
-## What's inside?
+### Key Technologies
 
-This Turborepo includes the following packages/apps:
+- **Backend**: Express 5, TypeScript, Prisma ORM, PostgreSQL, Redis, BullMQ
+- **AI Engine**: Google Gemini API (`@google/genai`) with token budget management & prompt engineering
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, TanStack Query, Radix UI
+- **Security**: OAuth 2.0 (GitHub), JWT authentication with Redis-backed revocation, AES-256-GCM token encryption at rest, CSRF protection, and rate limiting
 
-### Apps and Packages
+---
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Getting Started
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Prerequisites
 
-### Utilities
+- **Node.js** >= 18.0.0
+- **npm** >= 10.0.0
+- **PostgreSQL** instance (e.g. local Postgres or [Neon](https://neon.tech))
+- **Redis** instance (e.g. local `redis-server` or Redis Cloud)
+- **GitHub OAuth App** (Client ID & Client Secret)
+- **Google Gemini API Key** (from [Google AI Studio](https://aistudio.google.com/))
 
-This Turborepo has some additional tools already setup for you:
+### 1. Installation
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+Clone the repository and install all dependencies:
 
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+git clone https://github.com/mkrishna09/Review-Ai.git
+cd review-ai
+npm install
 ```
 
-Without global `turbo`, use your package manager:
+### 2. Environment Setup
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+Copy example environment files to their respective applications:
+
+```bash
+# API environment configuration
+cp apps/api/.env.example apps/api/.env
+
+# Web environment configuration
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Configure `apps/api/.env` with your credentials:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- `DATABASE_URL`: PostgreSQL connection URI
+- `GITHUB_CLIENT_ID` & `GITHUB_CLIENT_SECRET`: From your GitHub Developer Settings
+- `JWT_SECRET`: Random 32+ character string
+- `ENCRYPTION_KEY`: Random 32+ character string used for encrypting GitHub tokens at rest
+- `GEMINI_API_KEY`: Google Gemini API key (or set `USE_MOCK_AI=true` for local development without API calls)
+- `REDIS_HOST` & `REDIS_PORT`: Redis host (default `127.0.0.1`) and port (default `6379`)
 
-```sh
-turbo build --filter=docs
+### 3. Database Migration & Setup
+
+Run database migrations using Prisma:
+
+```bash
+npx prisma migrate dev --schema=apps/api/prisma/schema.prisma
 ```
 
-Without global `turbo`:
+### 4. Running Locally
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+Start both the backend API and frontend web application concurrently:
+
+```bash
+npm run dev
 ```
 
-### Develop
+- **API**: [http://localhost:4000](http://localhost:4000) (Health check: [http://localhost:4000/api/v1/health](http://localhost:4000/api/v1/health))
+- **Web**: [http://localhost:3000](http://localhost:3000)
 
-To develop all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Available Scripts
 
-```sh
-cd my-turborepo
-turbo dev
-```
+- `npm run dev`: Start all apps in watch mode with Turbo
+- `npm run build`: Compile and build all apps and packages
+- `npm run check-types`: Static typecheck across all apps
+- `npm run lint`: Run ESLint across the monorepo
+- `npm run format`: Format source files with Prettier
+- `npm run test --prefix apps/api`: Run backend test suites
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
+## Security Best Practices
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+1. **Secrets Management**: Never commit `.env` or dump files to version control. Use `.env.example` as a template.
+2. **Token Encryption**: All third-party access tokens (e.g. GitHub OAuth tokens) are encrypted with AES-256-GCM before writing to the database.
+3. **Session Revocation**: JWT logout actively blacklists tokens in Redis for their remaining lifetime.
+4. **Resilient Workers**: BullMQ worker processes utilize exponential backoff and retain failed jobs for inspection.
